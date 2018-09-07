@@ -19,7 +19,6 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)) + '/../')
 cv2.setNumThreads(0)  # @UndefinedVariable
 
 path = '/data/chercheurs/en/'
-#path = '/home/2017025/sen01/'
 
 def create_share_ndarray(shape, dtype, cdtype):
 
@@ -191,70 +190,65 @@ def _read_resize_image(idx):
 
 if __name__ == '__main__':
     
-
-    for dataset in ['KingsCollege', 'OldHospital', 'ShopFacade', 'StMarysChurch'][3:]:
-        for center_crop in [1, 0][1:]:
-            for _threshold in [1e-1, 1e-2, 1e-3, 1e-4][2:3]:
-                print('\n====================================\n')
-                print('dataset: ', dataset)
-        
-                train_test_set = 'test'
-        
-                base = '%s/DRP/relative_cambridge/%s'%(path, dataset)
     
-                annot = open('%s/DRP/relative_cambridge/%s/test_set.txt'%(path, dataset)).readlines()[3:]
-                annot = np.array([e.split() for e in annot])
-                gt_pose = get_relative_pose_np(annot[:, 4:8], annot[:, 12:16], annot[:, 1:4], annot[:, 9:12])
-
-                if os.path.exists('%s/images.npy'%base):
-                    images = np.load('%s/images.npy'%base)
-                    images = create_share_from_arr(images, ctypes.c_uint8)
-                else:
-                    images = create_share_ndarray((len(annot), 2, 256, 455, 3), 'uint8', ctypes.c_uint8)
-                    pool = Pool(processes = 30)
-                    pool.map(_read_resize_image, range(annot.shape[0]))
-                    pool.close()
-                    pool.join()
-                    np.save('%s/images'%base, images)
-                
-                txt = [e for e in open('%s/DRP/relative_cambridge/%s/reconstruction.nvm'%(path, dataset)).readlines()[3:] if 'seq' in e]
-                txt = {e.split('\t')[0]:np.array(e.split('\t')[1].split(), 'f4') for e in txt if len(e.split('\t')) >= 2}
-                
-        #         image = image[:90]
-        #         annot = annot[:90]
-        #         extra = extra[:90]
-                try:
-                    os.makedirs('%s/DRP/baseline/%s/SURF/%0.4f_%d/'%(path, dataset, _threshold, center_crop))
-                except:
-                    pass
+    center_crop = 1
+    
+    for dataset in ['KingsCollege', 'OldHospital', 'ShopFacade', 'StMarysChurch']:
         
-                filename = '%s/DRP/baseline/%s/SURF/%0.4f_%d/'%(path, dataset, _threshold, center_crop)
-                    
-                pool = Pool(processes=32)  # @UndefinedVariable
-                est_pose = pool.map(get_relative_pose, range(annot.shape[0]), chunksize=1)
-                pool.close()
-                pool.join()
+        _threshold = 1e-3
+        if dataset == 'ShopFacade':
+            ShopFacade = 1e-2
+        print('\n====================================\n')
+        print('dataset: ', dataset)
+
+        train_test_set = 'test'
+
+        base = '%s/DRP/relative_cambridge/%s'%(path, dataset)
+
+        annot = open('%s/DRP/relative_cambridge/%s/test_set.txt'%(path, dataset)).readlines()[3:]
+        annot = np.array([e.split() for e in annot])
+        gt_pose = get_relative_pose_np(annot[:, 4:8], annot[:, 12:16], annot[:, 1:4], annot[:, 9:12])
+
+        if os.path.exists('%s/images.npy'%base):
+            images = np.load('%s/images.npy'%base)
+            images = create_share_from_arr(images, ctypes.c_uint8)
+        else:
+            images = create_share_ndarray((len(annot), 2, 256, 455, 3), 'uint8', ctypes.c_uint8)
+            pool = Pool(processes = 30)
+            pool.map(_read_resize_image, range(annot.shape[0]))
+            pool.close()
+            pool.join()
+            np.save('%s/images'%base, images)
+        
+        txt = [e for e in open('%s/DRP/relative_cambridge/%s/reconstruction.nvm'%(path, dataset)).readlines()[3:] if 'seq' in e]
+        txt = {e.split('\t')[0]:np.array(e.split('\t')[1].split(), 'f4') for e in txt if len(e.split('\t')) >= 2}
+        
+        try:
+            os.makedirs('%s/DRP/baseline/%s/SURF/%0.4f_%d/'%(path, dataset, _threshold, center_crop))
+        except:
+            pass
+
+        filename = '%s/DRP/baseline/%s/SURF/%0.4f_%d/'%(path, dataset, _threshold, center_crop)
             
-                est_pose = np.vstack(est_pose)
-                xyz, wpqr = est_pose[:, :3], est_pose[:, 3:]                                  
+        pool = Pool(processes=32)  # @UndefinedVariable
+        est_pose = pool.map(get_relative_pose, range(annot.shape[0]), chunksize=1)
+        pool.close()
+        pool.join()
+    
+        est_pose = np.vstack(est_pose)
+        xyz, wpqr = est_pose[:, :3], est_pose[:, 3:]                                  
+        
+        T = gt_pose[:, :3]
+        R = gt_pose[:, 3:]
+        
+        R_error = get_Rerror_in_degree(wpqr, R)
+        
+        T_error = get_Terror_in_degree(xyz, T)
+        T_error_meter = get_Terror_in_meter(xyz, T)
                 
-                T = gt_pose[:, :3]
-                R = gt_pose[:, 3:]
-                
-                R_error = get_Rerror_in_degree(wpqr, R)
-                
-#                 T = T / np.linalg.norm(T, axis=1, keepdims = True)
-                
-                T_error = get_Terror_in_degree(xyz, T)
-                T_error_meter = get_Terror_in_meter(xyz, T)
-                        
-                print('Threshold:', _threshold)                
-                print('Rotation: ', np.median(R_error))
-                print('Translation: ', np.median(T_error))
-                print('Translation (meter):', np.median(T_error_meter))
-                print()
-            
-#                 np.save('%sResults'%filename, np.array([np.median(R_error), np.median(T_error), np.median(T_error_meter)]))
-#                 np.save('%sRerror'%filename, R_error)
-#                 np.save('%sTerror'%filename, T_error)
-#                 save_plot(R_error, T_error, filename)
+        print('Threshold:', _threshold)                
+        print('Rotation: ', np.median(R_error))
+        print('Translation: ', np.median(T_error))
+        print('Translation (meter):', np.median(T_error_meter))
+        print()
+        

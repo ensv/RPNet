@@ -19,7 +19,7 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)) + '/../')
 cv2.setNumThreads(0)  # @UndefinedVariable
 
 path = '/data/chercheurs/en/'
-#path = '/home/2017025/sen01/'
+
 
 def create_share_ndarray(shape, dtype, cdtype):
 
@@ -166,7 +166,7 @@ def get_relative_pose_np(r1, r2, t1, t2):
 if __name__ == '__main__':
     
 
-    for dataset in ['KingsCollege', 'OldHospital', 'ShopFacade', 'StMarysChurch'][3:]:
+    for dataset in ['KingsCollege', 'OldHospital', 'ShopFacade', 'StMarysChurch']:
         print('\n====================================\n')
         print('dataset: ', dataset)
 
@@ -181,9 +181,6 @@ if __name__ == '__main__':
         txt = [e for e in open('%s/DRP/relative_cambridge/%s/reconstruction.nvm'%(path, dataset)).readlines()[3:] if 'seq' in e]
         txt = {e.split('\t')[0]:np.array(e.split('\t')[1].split(), 'f4') for e in txt if len(e.split('\t')) >= 2}
         
-#         image = image[:90]
-#         annot = annot[:90]
-#         extra = extra[:90]
         try:
             os.makedirs('%s/DRP/baseline/%s/SURF/full/'%(path, dataset))
         except:
