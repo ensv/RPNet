@@ -91,7 +91,7 @@ def get_relative_pose(idx):
 
 
     # Sort them in the order of their distance.
-    matches = sorted(matches, key = lambda x:x.distance)
+    matches = sorted(matches, key = lambda x:x.distance)[:100]
 
     # Draw first 10 matches.
 #     draw_params = dict(#matchColor = (0,255,0), # draw matches in green color
