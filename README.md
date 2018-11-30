@@ -38,6 +38,7 @@ To see all the customizable parameters for each model, run with "--help" option.
 ```sh
 $ python3 rpnetplus.py --help
 ```
+Train test split: https://goo.gl/vv3zxB
 
 # Results on Cambridge Dataset using PoseNet
 
